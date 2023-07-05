@@ -108,19 +108,21 @@ class Router(General_Network_Machine):
                 f'interface {interface_to_apply}', f'encapsulation dot1Q {vlan_number}', f'ipv6 address {ip_address_and_subnet}',
                 f'ipv6 dhcp server {dhcp_pool_name}', 'no shutdown', 'exit']
 
-    def set_ospf_on_router(self, process_id:str, router_id: str, all_route: list[str], area: str):
+    def set_ospf_on_router(self, process_id: str, router_id: str, all_route: list[str], area: str, wild_card_mask: str):
         """
         Make a working OSFP
-        :param process_id: wich process is doing the ospf
+        :param process_id: which process is doing the ospf
         :param router_id: what is the id of the router
-        :param all_route: what are the routs possible
-        :param area: wich area are they in
+        :param all_route: what are the routes possible
+        :param area: which area are they in
         :return: the commands
         """
+        wild_card_mask = wild_card_mask if wild_card_mask else '0.0.0.0'
         base_command = ['end', 'configure terminal', f'router ospf {process_id}', f'router-id {router_id}']
         for e in all_route:
-            base_command.append(f'network {e} area {area}')
-        return base_command.append('exit')
+            base_command.append(f'network {e} {wild_card_mask} area {area}')
+        base_command.append('exit')
+        return base_command
 
     def set_ospf_on_router_IPV6(self, process_id: str, router_id: str, all_route: list[str], area: str):
         """
@@ -207,8 +209,9 @@ all_cmd = []
 all_cmd.extend(testR.house_keeping('R1','hello', 'student', 'cisco123', 'cisco'))
 all_cmd.extend(testR.set_dotq_ports_and_dhcp('fa 0/0', '10', '10.0.0.1', '255.0.0.0'))
 all_cmd.extend(testR.set_dotq_ports_and_dhcp('fa 1/0', '11', '11.0.0.1', '255.0.0.0'))
-all_cmd.extend(testR.static_routing([['11.0.0.0 255.0.0.0', '11.0.0.1']]))
-all_cmd.extend(testR.static_routing([['10.0.0.0 255.0.0.0', '10.0.0.1']]))
+#all_cmd.extend(testR.static_routing([['11.0.0.0 255.0.0.0', '11.0.0.1']]))
+#all_cmd.extend(testR.static_routing([['10.0.0.0 255.0.0.0', '10.0.0.1']]))
+all_cmd.extend(testR.set_ospf_on_router('1','1.1.1.1',['10.0.0.0','11.0.0.0'],'0',None))
 
 for e in all_cmd:
     print(e)

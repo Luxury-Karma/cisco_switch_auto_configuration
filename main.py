@@ -50,7 +50,7 @@ class Switch(General_Network_Machine):
         :return:
         """
         vlan_to_allow = vlan_to_allow if vlan_to_allow else 'all'
-        return [f'interface {port_to_trunk}', f'switchport mode trunk', f'switchport trunk allowed {vlan_to_allow}']
+        return [f'interface {port_to_trunk}', f'switchport mode trunk', f'switchport trunk allowed vlan {vlan_to_allow}']
 
     def set_dynamic_trunking_desirable(self, port_to_trunk: str):
         """
@@ -79,21 +79,18 @@ class Router(General_Network_Machine):
     def set_DHCP(self, dhcp_pool_name: str, ip_address_and_subnet: str):
         return [f'end', f'configure terminal', f'ip dhcp pool {dhcp_pool_name}', f'network {ip_address_and_subnet}']
 
-    def set_vlan_dhcp_ipv4(self, dhcp_pool_name: str, ip_address_and_subnet: str, vlan_number: str,
-                           interface_to_apply: str):
+    def set_vlan_dhcp_ipv4(self, dhcp_pool_name: str, ip_address_and_subnet: str, interface_to_apply: str):
         """
         Set up DHCP for specific port for a vlan
         :param dhcp_pool_name: the name of the pool
         :param ip_address_and_subnet: the ip of the pool
-        :param vlan_number: which vlan
         :param interface_to_apply: which interface
         :return: all the command
         """
         commands = self.set_DHCP(dhcp_pool_name, ip_address_and_subnet)
         commands.extend([f'interface {interface_to_apply}',
-                         f'encapsulation dot1Q {vlan_number}',
                          f'ip address {ip_address_and_subnet}',
-                         f'ip dhcp server {dhcp_pool_name}',
+                         f'ip address dhcp server {dhcp_pool_name}',
                          'no shutdown', 'exit'])
         return commands
 
@@ -111,8 +108,6 @@ class Router(General_Network_Machine):
                 f'interface {interface_to_apply}', f'encapsulation dot1Q {vlan_number}', f'ipv6 address {ip_address_and_subnet}',
                 f'ipv6 dhcp server {dhcp_pool_name}', 'no shutdown', 'exit']
 
-
-    # todo: setup osfp on the router
     def set_ospf_on_router(self, process_id:str, router_id: str, all_route: list[str], area: str):
         """
         Make a working OSFP
@@ -127,7 +122,7 @@ class Router(General_Network_Machine):
             base_command.append(f'network {e} area {area}')
         return base_command.append('exit')
 
-    def set_ospf_on_router_IPV6(self, process_id:str, router_id: str, all_route: list[str], area: str):
+    def set_ospf_on_router_IPV6(self, process_id: str, router_id: str, all_route: list[str], area: str):
         """
         Make a working OSFP
         :param process_id: wich process is doing the ospf
@@ -141,36 +136,80 @@ class Router(General_Network_Machine):
             base_command.append(f'area {area} range {e}')
         return base_command.append('exit')
 
-    # todo: setup route on the network
-    def static_routing(self, ip_route:list[list[str]]):
+    def static_routing(self, ip_route: list[list[str]]):
         """
         Make static route for IPV4
         :param ip_route: An array with the network we want to go and the next hop
         :return: the command to accomplish it
         """
         base_command = ['end', 'configure terminal']
-        for e,j in ip_route:
-            base_command.append(f'ip route {e} {j}')
-        return base_command.append('exit')
+        for e in ip_route:
+            base_command.append(f'ip route {e[0]} {e[1]}')
+        base_command.append('exit')
+        return base_command
+    def set_dotq_ports(self, interface: str, interface_dot: list[list[str]]):
+        """
+        Set the dot1q for the ports
+        :param interface: The interface where the dot1q is
+        :param interface_dot: the data in this format: [[ 'vlan number', 'ip subnet']]
+        :return: the commands
+        """
+        commands = [f'interface {interface}', 'no shutdown']
+        for el in interface_dot:
+            commands.extend(
+                [f'interface {interface}.{el[0]}', f'encapsulation dot1Q {el[0]}', f'ip address {el[1].split()[0]}',
+                 'no shutdown'])
+        return commands
+
+    def set_dotq_ports_and_dhcp(self, interface: str, vlan_number, ip, subnet):
+        command =[
+        f'interface {interface}',
+        f'no shutdown',
+        '!',
+        f'interface {interface}.{vlan_number}',
+         f'encapsulation dot1Q {vlan_number}',
+         f'ip address {ip} {subnet}',
+         f'no shutdown',
+        '!',
+        f'ip dhcp pool VLAN{vlan_number}',
+         f'network {ip} {subnet}',
+         f'default-router {ip}',
+         f'option 150 ip {ip}']
+
+        return command
 
 
+print('S1 \n')
 testS = Switch()
 testR = Router()
 all_cmd = []
 all_cmd.extend(testS.house_keeping('S1', 'hello', 'student', 'cisco123', 'cisco'))
-all_cmd.extend(testS.set_vlan(None,'10','10.0.0.1 255.0.0.0'))
-all_cmd.extend(testS.set_port_vlan('fa 0/1','10'))
-all_cmd.extend(testS.set_static_trunking('fa 0/2',None))
+all_cmd.extend(testS.set_vlan(None,'10', '10.0.0.0 255.0.0.0'))
+all_cmd.extend(testS.set_port_vlan('fa 1/1', '10'))
+all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
+for e in all_cmd:
+    print(e)
+
+print('\nS2\n')
+testS = Switch()
+testR = Router()
+all_cmd = []
+all_cmd.extend(testS.house_keeping('S2', 'hello', 'student', 'cisco123', 'cisco'))
+all_cmd.extend(testS.set_vlan(None,'11', '11.0.0.0 255.0.0.0'))
+all_cmd.extend(testS.set_port_vlan('fa 1/1', '11'))
+all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
 for e in all_cmd:
     print(e)
 
 
-
-
 print('\nrouter\n')
 all_cmd = []
-all_cmd.extend(testR.house_keeping('R1','hello','student','cisco123','cisco'))
-all_cmd.extend(testR.set_vlan_dhcp_ipv4('vlan10','10.0.0.1 255.0.0.0', '10', 'fa 0/0'))
+all_cmd.extend(testR.house_keeping('R1','hello', 'student', 'cisco123', 'cisco'))
+all_cmd.extend(testR.set_dotq_ports_and_dhcp('fa 0/0', '10', '10.0.0.1', '255.0.0.0'))
+all_cmd.extend(testR.set_dotq_ports_and_dhcp('fa 1/0', '11', '11.0.0.1', '255.0.0.0'))
+all_cmd.extend(testR.static_routing([['11.0.0.0 255.0.0.0', '11.0.0.1']]))
+all_cmd.extend(testR.static_routing([['10.0.0.0 255.0.0.0', '10.0.0.1']]))
+
 for e in all_cmd:
     print(e)
 

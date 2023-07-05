@@ -79,14 +79,7 @@ class Router(General_Network_Machine):
     def set_DHCP(self, dhcp_pool_name: str, ip_address_and_subnet: str):
         return [f'end', f'configure terminal', f'ip dhcp pool {dhcp_pool_name}', f'network {ip_address_and_subnet}']
 
-    def set_vlan_dhcp_ipv4(self, dhcp_pool_name: str, ip_address_and_subnet: str, interface_to_apply: str):
-        """
-        Set up DHCP for specific port for a vlan
-        :param dhcp_pool_name: the name of the pool
-        :param ip_address_and_subnet: the ip of the pool
-        :param interface_to_apply: which interface
-        :return: all the command
-        """
+    def set_VLAN_DHCP_IPv4(self, dhcp_pool_name: str, ip_address_and_subnet: str, interface_to_apply: str):
         commands = self.set_DHCP(dhcp_pool_name, ip_address_and_subnet)
         commands.extend([f'interface {interface_to_apply}',
                          f'ip address {ip_address_and_subnet}',
@@ -94,68 +87,37 @@ class Router(General_Network_Machine):
                          'no shutdown', 'exit'])
         return commands
 
-    def set_vlan_dhcp_ipv6(self, dhcp_pool_name: str, ip_address_and_subnet: str, vlan_number: str,
-                           interface_to_apply: str):
-        """
-        Set up DHCP for specific port for a vlan
-        :param dhcp_pool_name: the name of the pool
-        :param ip_address_and_subnet: the ip of the pool
-        :param vlan_number: wich vlan
-        :param interface_to_apply: wich interface
-        :return: all the command
-        """
-        return ['end','configure terminal', f'ipv6 dhcp pool {dhcp_pool_name}', f'address prefix {ip_address_and_subnet}',
-                f'interface {interface_to_apply}', f'encapsulation dot1Q {vlan_number}', f'ipv6 address {ip_address_and_subnet}',
-                f'ipv6 dhcp server {dhcp_pool_name}', 'no shutdown', 'exit']
+    def set_VLAN_DHCP_IPv6(self, dhcp_pool_name: str, ipv6_address_and_prefix: str, interface_to_apply: str):
+        return [f'end', f'configure terminal', f'ipv6 dhcp pool {dhcp_pool_name}',
+                    f'address prefix {ipv6_address_and_prefix}',f'interface {interface_to_apply}',
+                         f'ipv6 address {ipv6_address_and_prefix}',
+                         f'ipv6 dhcp server {dhcp_pool_name}',
+                         'no shutdown', 'exit']
 
-    def set_ospf_on_router(self, process_id: str, router_id: str, all_route: list[str], area: str, wild_card_mask: str):
-        """
-        Make a working OSFP
-        :param process_id: which process is doing the ospf
-        :param router_id: what is the id of the router
-        :param all_route: what are the routes possible
-        :param area: which area are they in
-        :return: the commands
-        """
-        wild_card_mask = wild_card_mask if wild_card_mask else '0.0.0.0'
+    def set_OSPF_on_router(self, process_id: str, router_id: str, all_route: list[str], area: str, wildcard_mask: str):
+        wildcard_mask = wildcard_mask if wildcard_mask else '0.0.0.0'
         base_command = ['end', 'configure terminal', f'router ospf {process_id}', f'router-id {router_id}']
         for e in all_route:
-            base_command.append(f'network {e} {wild_card_mask} area {area}')
+            base_command.append(f'network {e} {wildcard_mask} area {area}')
         base_command.append('exit')
         return base_command
 
-    def set_ospf_on_router_IPV6(self, process_id: str, router_id: str, all_route: list[str], area: str):
-        """
-        Make a working OSFP
-        :param process_id: wich process is doing the ospf
-        :param router_id: what is the id of the router
-        :param all_route: what are the routs possible
-        :param area: wich area are they in
-        :return: the commands
-        """
+
+    def set_OSPF_on_router_IPV6(self, process_id: str, router_id: str, all_route: list[str], area: str):
         base_command = ['end', 'configure terminal', f'ipv6 router ospf {process_id}', f'router-id {router_id}']
         for e in all_route:
-            base_command.append(f'area {area} range {e}')
-        return base_command.append('exit')
+            base_command.extend(['interface {}'.format(e), f'ipv6 ospf {process_id} area {area}'])
+        base_command.append('exit')
+        return base_command
 
     def static_routing(self, ip_route: list[list[str]]):
-        """
-        Make static route for IPV4
-        :param ip_route: An array with the network we want to go and the next hop
-        :return: the command to accomplish it
-        """
         base_command = ['end', 'configure terminal']
         for e in ip_route:
             base_command.append(f'ip route {e[0]} {e[1]}')
         base_command.append('exit')
         return base_command
-    def set_dotq_ports(self, interface: str, interface_dot: list[list[str]]):
-        """
-        Set the dot1q for the ports
-        :param interface: The interface where the dot1q is
-        :param interface_dot: the data in this format: [[ 'vlan number', 'ip subnet']]
-        :return: the commands
-        """
+
+    def set_dot1q_ports(self, interface: str, interface_dot: list[list[str]]):
         commands = [f'interface {interface}', 'no shutdown']
         for el in interface_dot:
             commands.extend(
@@ -163,24 +125,73 @@ class Router(General_Network_Machine):
                  'no shutdown'])
         return commands
 
-    def set_dotq_ports_and_dhcp(self, interface: str, vlan_number, ip, subnet):
-        command =[
-        f'interface {interface}',
-        f'no shutdown',
-        '!',
-        f'interface {interface}.{vlan_number}',
-         f'encapsulation dot1Q {vlan_number}',
-         f'ip address {ip} {subnet}',
-         f'no shutdown',
-        '!',
-        f'ip dhcp pool VLAN{vlan_number}',
-         f'network {ip} {subnet}',
-         f'default-router {ip}',
-         f'option 150 ip {ip}']
+    # TODO: need correction of all the command
+    def set_dot1q_ports_and_dhcp_IPV6(self, interface: str, vlan_number: str, ipv6_address: str, prefix_length: str):
+        command =[f'interface {interface}', 'no shutdown']
+        command.extend(self.set_VLAN_DHCP_IPv6(f'vlan{vlan_number}', f'{ipv6_address}/{prefix_length}',interface))
+        command.extend([
+            f'interface {interface}',
+            'no shutdown',
+            '!',
+            f'interface {interface}.{vlan_number}',
+            f'encapsulation dot1Q {vlan_number}',
+            f'ipv6 address {ipv6_address}/{prefix_length}',
+            'no shutdown',
+            '!',
+            f'ipv6 dhcp pool VLAN{vlan_number}',
+            f'address prefix {ipv6_address}/{prefix_length}',
+            f'default-router {ipv6_address}',
+        ])
+        return command
 
+    def set_dot1q_ports_and_dhcp(self, interface: str, vlan_number, ip, subnet):
+        command = [
+            f'interface {interface}',
+            f'no shutdown',
+            '!',
+            f'interface {interface}.{vlan_number}',
+            f'encapsulation dot1Q {vlan_number}',
+            f'ip address {ip} {subnet}',
+            f'no shutdown',
+            '!',
+            f'ip dhcp pool VLAN{vlan_number}',
+            f'network {ip} {subnet}',
+            f'default-router {ip}',
+            f'option 150 ip {ip}'
+        ]
         return command
 
 
+testS = Switch()
+all_cmd = []
+all_cmd.extend(testS.house_keeping('S1', 'hello', 'student', 'cisco123', 'cisco'))
+all_cmd.extend(testS.set_vlan(None, '10', 'd::1/64'))  # Example IPv6 address and prefix
+all_cmd.extend(testS.set_port_vlan('fa 1/1', '10'))
+all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
+for e in all_cmd:
+    print(e)
+
+print('\nS2\n')
+testS = Switch()
+testR = Router()
+all_cmd = []
+all_cmd.extend(testS.house_keeping('S2', 'hello', 'student', 'cisco123', 'cisco'))
+all_cmd.extend(testS.set_vlan(None, '11', 'c::1/64'))  # Example IPv6 address and prefix
+all_cmd.extend(testS.set_port_vlan('fa 1/1', '11'))
+all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
+for e in all_cmd:
+    print(e)
+
+print('\nRouter\n')
+all_cmd.extend(testR.set_dot1q_ports_and_dhcp_IPV6('fa 0/0', '10', 'e::1', '64'))
+all_cmd.extend(testR.set_OSPF_on_router_IPV6('1', '1.1.1.1', ['e::1'], '0'))
+
+for e in all_cmd:
+    print(e)
+
+
+
+"""
 print('S1 \n')
 testS = Switch()
 testR = Router()
@@ -207,14 +218,17 @@ for e in all_cmd:
 print('\nrouter\n')
 all_cmd = []
 all_cmd.extend(testR.house_keeping('R1','hello', 'student', 'cisco123', 'cisco'))
-all_cmd.extend(testR.set_dotq_ports_and_dhcp('fa 0/0', '10', '10.0.0.1', '255.0.0.0'))
-all_cmd.extend(testR.set_dotq_ports_and_dhcp('fa 1/0', '11', '11.0.0.1', '255.0.0.0'))
+all_cmd.extend(testR.set_dot1q_ports_and_dhcp('fa 0/0', '10', '10.0.0.1', '255.0.0.0'))
+all_cmd.extend(testR.set_dot1q_ports_and_dhcp('fa 1/0', '11', '11.0.0.1', '255.0.0.0'))
 #all_cmd.extend(testR.static_routing([['11.0.0.0 255.0.0.0', '11.0.0.1']]))
 #all_cmd.extend(testR.static_routing([['10.0.0.0 255.0.0.0', '10.0.0.1']]))
-all_cmd.extend(testR.set_ospf_on_router('1','1.1.1.1',['10.0.0.0','11.0.0.0'],'0',None))
+all_cmd.extend(testR.set_OSPF_on_router('1','1.1.1.1',['10.0.0.0','11.0.0.0'],'0',None))
 
 for e in all_cmd:
     print(e)
+
+"""
+
 
 
 

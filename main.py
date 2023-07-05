@@ -161,73 +161,44 @@ class Router(General_Network_Machine):
         ]
         return command
 
-
+print('S1\n')
 testS = Switch()
 all_cmd = []
 all_cmd.extend(testS.house_keeping('S1', 'hello', 'student', 'cisco123', 'cisco'))
-all_cmd.extend(testS.set_vlan(None, '10', 'd::1/64'))  # Example IPv6 address and prefix
+all_cmd.extend(testS.set_vlan(None, '11', '11.0.0.0 255.0.0.0'))  # Example IPv6 address and prefix
 all_cmd.extend(testS.set_port_vlan('fa 1/1', '10'))
+all_cmd.extend(testS.set_vlan(None, '12', '12.0.0.0 255.0.0.0'))
+all_cmd.extend(testS.set_port_vlan('fa 2/1', '11'))
 all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
 for e in all_cmd:
     print(e)
 
 print('\nS2\n')
-testS = Switch()
-testR = Router()
 all_cmd = []
 all_cmd.extend(testS.house_keeping('S2', 'hello', 'student', 'cisco123', 'cisco'))
-all_cmd.extend(testS.set_vlan(None, '11', 'c::1/64'))  # Example IPv6 address and prefix
-all_cmd.extend(testS.set_port_vlan('fa 1/1', '11'))
+all_cmd.extend(testS.set_vlan(None, '13', '13.0.0.0 255.0.0.0'))  # Example IPv6 address and prefix
+all_cmd.extend(testS.set_port_vlan('fa 1/1', '13'))
+all_cmd.extend(testS.set_vlan(None, '14', '14.0.0.0 255.0.0.0'))
+all_cmd.extend(testS.set_port_vlan('fa 2/1', '14'))
 all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
 for e in all_cmd:
     print(e)
 
-print('\nRouter\n')
-all_cmd.extend(testR.set_dot1q_ports_and_dhcp_IPV6('fa 0/0', '10', 'e::1', '64'))
-all_cmd.extend(testR.set_OSPF_on_router_IPV6('1', '1.1.1.1', ['e::1'], '0'))
+print('\nR1\n')
 
-for e in all_cmd:
-    print(e)
-
-
-
-"""
-print('S1 \n')
-testS = Switch()
 testR = Router()
 all_cmd = []
-all_cmd.extend(testS.house_keeping('S1', 'hello', 'student', 'cisco123', 'cisco'))
-all_cmd.extend(testS.set_vlan(None,'10', '10.0.0.0 255.0.0.0'))
-all_cmd.extend(testS.set_port_vlan('fa 1/1', '10'))
-all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
-for e in all_cmd:
-    print(e)
-
-print('\nS2\n')
-testS = Switch()
-testR = Router()
-all_cmd = []
-all_cmd.extend(testS.house_keeping('S2', 'hello', 'student', 'cisco123', 'cisco'))
-all_cmd.extend(testS.set_vlan(None,'11', '11.0.0.0 255.0.0.0'))
-all_cmd.extend(testS.set_port_vlan('fa 1/1', '11'))
-all_cmd.extend(testS.set_static_trunking('fa 0/1', None))
-for e in all_cmd:
-    print(e)
-
-
-print('\nrouter\n')
-all_cmd = []
-all_cmd.extend(testR.house_keeping('R1','hello', 'student', 'cisco123', 'cisco'))
-all_cmd.extend(testR.set_dot1q_ports_and_dhcp('fa 0/0', '10', '10.0.0.1', '255.0.0.0'))
-all_cmd.extend(testR.set_dot1q_ports_and_dhcp('fa 1/0', '11', '11.0.0.1', '255.0.0.0'))
-#all_cmd.extend(testR.static_routing([['11.0.0.0 255.0.0.0', '11.0.0.1']]))
-#all_cmd.extend(testR.static_routing([['10.0.0.0 255.0.0.0', '10.0.0.1']]))
-all_cmd.extend(testR.set_OSPF_on_router('1','1.1.1.1',['10.0.0.0','11.0.0.0'],'0',None))
+all_cmd.extend(testR.set_DHCP('11', '11.0.0.0 255.0.0.0'))
+all_cmd.extend(testR.set_DHCP('12', '12.0.0.0 255.0.0.0'))
+all_cmd.extend(testR.set_DHCP('13', '13.0.0.0 255.0.0.0'))
+all_cmd.extend(testR.set_DHCP('14', '14.0.0.0 255.0.0.0'))
+all_cmd.extend(testR.set_OSPF_on_router('1', '1.1.1.1', ['10.0.0.0'], '0', None))
 
 for e in all_cmd:
     print(e)
 
-"""
+
+
 
 
 

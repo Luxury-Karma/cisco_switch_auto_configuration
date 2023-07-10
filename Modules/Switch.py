@@ -21,18 +21,21 @@ def set_port_vlan( interface: str, vlan_number: str):
     return [f'interface {interface}', f'switchport access vlan {vlan_number}']
 
 
-def set_static_trunking( port_to_trunk: str, vlan_to_allow: str):
+def set_static_trunking( port_to_trunk: str, vlan_to_allow: list[str]):
     """
     Make a static trunk in the vlan
     :param port_to_trunk: witch interface we need to make a trunk
     :param vlan_to_allow: wich vlan are allowed (if empty all)
     :return:
     """
-    vlan_to_allow = vlan_to_allow if vlan_to_allow else 'all'
-    return [f'interface {port_to_trunk}', f'switchport mode trunk', f'switchport trunk allowed vlan {vlan_to_allow}']
+    vlan_to_allow = vlan_to_allow if vlan_to_allow else ['all']
+    command = [f'interface {port_to_trunk}', f'switchport mode trunk']
+    for e in vlan_to_allow:
+        command.extend(f'switchport trunk allowed vlan {e}')
+    return command
 
 
-def set_dynamic_trunking_desirable( port_to_trunk: str):
+def set_dynamic_trunking_desirable(port_to_trunk: str):
     """
     Create a dynamic desirable trunk.
     :param port_to_trunk: Wich port will be the desirable trunk
@@ -48,3 +51,5 @@ def set_dynamic_trunking_auto( port_to_trunk: str):
     :return: the command to do it
     """
     return [f'interface {port_to_trunk}', 'switchport mode dynamic auto']
+
+

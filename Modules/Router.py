@@ -73,20 +73,20 @@ def set_dot1q_ports_and_dhcp_IPV6(self, interface: str, vlan_number: str, ipv6_a
     return command
 
 
-def set_dot1q_ports_and_dhcp(interface: str, vlan_number, ip, subnet):
-    command = [
+def set_dot1q_ports_and_dhcp(interface: str, vlan_number, ip, router_ip):
+    return [
         f'interface {interface}',
         f'no shutdown',
         '!',
         f'interface {interface}.{vlan_number}',
         f'encapsulation dot1Q {vlan_number}',
-        f'ip address {ip} {subnet}',
+        f'ip address {ip}',
         f'no shutdown',
         f'exit',
         '!',
         f'ip dhcp pool VLAN{vlan_number}',
-        f'network {ip} {subnet}',
-        f'default-router {ip}',
-        f'option 150 ip {ip}'
+        f'network {ip}',
+        f'default-router {router_ip}',
     ]
-    return command
+
+

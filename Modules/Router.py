@@ -89,4 +89,8 @@ def set_dot1q_ports_and_dhcp(interface: str, vlan_number, ip, router_ip):
         f'default-router {router_ip}',
     ]
 
+def create_access_list(access_list_number: int, permit: bool, source_ip: str):
+    permit_or_deny = 'permit' if permit else 'deny'
+    access_list_command = f'access-list {access_list_number} {permit_or_deny} {source_ip}'
+    return [access_list_command]
 

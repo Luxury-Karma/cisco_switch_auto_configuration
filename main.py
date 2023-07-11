@@ -162,7 +162,8 @@ def helper() -> None:
           '-mdphcp: create multiple dot1q ports and a DHCP with each one\n'
           '-dot: create a dotq on an interface\n'
           '-str: create static routes\n'
-          '-ospf: create OSPF routes\n')
+          '-ospf: create OSPF routes\n'
+          '-acl: activate ACL\n')
 
 
 def ospf() -> str:
@@ -183,6 +184,48 @@ def ospf() -> str:
         else:
             print('Not an IP. Continue.\n')
     return Router.set_ospf(p_id, r_id, total_road, area, wildcard_mask)
+
+
+def verify_its_number(user_input: str) -> int or None:
+    while not user_input.isdigit() and j < __MAXIMUM_ATTEMPT:
+        print('Invalid access list number. Please enter a numeric value.')
+        user_input = input('Enter the access list number')
+        j = j + 1
+        if j >= __MAXIMUM_ATTEMPT:
+            print('To many bad attempt skiping access list')
+    return user_input if user_input.isdigit() else None
+
+
+def access_list() -> str or None:
+    ac_l_number = input('Enter the access list number')
+    valid_number = False
+    j = 0
+
+    while not valid_number and j < __MAXIMUM_ATTEMPT:
+        temp_data = verify_its_number(ac_l_number)
+        if temp_data:
+            ac_l_number = temp_data
+            if ac_l_number < 1 or (99 < ac_l_number < 1000) or ac_l_number > 2699:
+                print('Invalid access list number. Please enter a number between 1 and 99 or between 1000 and 2699.')
+                pass
+            else:
+                valid_number = True
+                pass
+
+    if valid_number:
+        ac_l_number = int(ac_l_number)
+
+        permit_or_deny = input('Let empty if the permit is true else enter anything')
+        if permit_or_deny == '':
+            permit_or_deny = True
+        else:
+            permit_or_deny = False
+        source_ip = ensure_specific_ip(input('Enter the source IP'))
+        if source_ip[0]:
+            return Router.create_access_list(ac_l_number, permit_or_deny,source_ip[1])
+        else:
+            print('Not a valid IP skipping')
+    return None
 
 
 if len(sys.argv) > 1:
@@ -257,4 +300,7 @@ if len(sys.argv) > 1:
         if '-ospf' in sys.argv:
             ospf()
 
+        if'-acl' in sys.argv:
+            access_list()
+            
         saving()

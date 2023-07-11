@@ -52,6 +52,24 @@ def dhcp() -> str | None:
         print('Too many wrong IP addresses. Skipping this part.')
 
 
+def hsrp() -> str or None:
+    print('Enter HSRP')
+    internal_interface = input('What is the internal interface: ')
+    internal_virtual_ip = ensure_specific_ip(input('What is the internal virtual IP: '))
+    if internal_virtual_ip[0]:
+        internal_virtual_ip = internal_virtual_ip[1]
+        internal_hsrp_process = input('What is the internal virtual hsrp: ')
+        external_interface = input('What is the external interface: ')
+
+        external_virtual_ip = ensure_specific_ip(input('What is the virtual external IP: '))
+        if external_virtual_ip[0]:
+            external_virtual_ip = external_virtual_ip[1]
+            external_hsrp_process = input('What is the virtual external hsrp: ')
+            all_cmd.extend(Router.configure_hsrp(internal_interface, internal_virtual_ip, internal_hsrp_process,
+                                                 external_interface, external_virtual_ip, external_hsrp_process))
+    return None
+
+
 def vlan_dhcp() -> str:
     dhcp_pool_name = input('Name of the DHCP pool: ')
     ip_address = input('What is the IP and subnet for the DHCP: ')
@@ -63,7 +81,6 @@ def vlan_dhcp() -> str:
         return Router.set_VLAN_DHCP_IPv4(dhcp_pool_name, ip_address, interface_to_apply)
     else:
         print('Too many wrong IP addresses. Skipping this part.')
-
 
 
 def saving() -> None:
@@ -211,6 +228,7 @@ def nat_overload() -> str or None:
         print('bad configuration skiping')
         return None
 
+
 def verify_its_number(user_input: str) -> int or None:
     while not user_input.isdigit() and j < __MAXIMUM_ATTEMPT:
         print('Invalid access list number. Please enter a numeric value.')
@@ -248,7 +266,7 @@ def access_list() -> str or None:
             permit_or_deny = False
         source_ip = ensure_ip(input('Enter the source IP for ACL (ip mask): '))
         if source_ip[0]:
-            return Router.create_access_list(ac_l_number, permit_or_deny,source_ip[1])
+            return Router.create_access_list(ac_l_number, permit_or_deny, source_ip[1])
         else:
             print('Not a valid IP skipping')
     return None
@@ -296,7 +314,8 @@ if len(sys.argv) > 1:
             amount_of_DHCP = ensure_number(input('How many VLAN DHCP need to be created: '))
             i = 0
             while not amount_of_DHCP:
-                amount_of_DHCP = ensure_number(input('How many VLAN DHCP need to be created. IT NEEDS TO BE A NUMBER: '))
+                amount_of_DHCP = ensure_number(
+                    input('How many VLAN DHCP need to be created. IT NEEDS TO BE A NUMBER: '))
                 i = i + 1
                 if i >= 5:
                     print('Program quit, too many bad attempts: ')
@@ -326,10 +345,10 @@ if len(sys.argv) > 1:
         if '-ospf' in sys.argv:
             all_cmd.extend(ospf())
 
-        if'-acl' in sys.argv:
+        if '-acl' in sys.argv:
             all_cmd.extend(access_list())
 
         if '-nato' in sys.argv:
             all_cmd.extend(nat_overload())
-            
+
         saving()

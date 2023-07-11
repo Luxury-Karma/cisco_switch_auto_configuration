@@ -128,3 +128,27 @@ def generate_nat_overload_config(internal_interface, internal_network, external_
     config.append(f'exit')
 
     return config
+
+
+def configure_hsrp(internal_interface, internal_virtual_ip, internal_hsrp_process,
+                   external_interface, external_virtual_ip, external_hsrp_process):
+    config = []
+    config.append('conf t')
+
+    # Configure HSRP on the internal interface
+    config.append(f"interface {internal_interface}")
+    config.append(f"ip address {internal_virtual_ip}")
+    config.append(f"standby version 2")
+    config.append(f"standby {internal_hsrp_process} ip {internal_virtual_ip}")
+    config.append(f"standby {internal_hsrp_process} preempt")
+
+    # Configure HSRP on the external interface
+    config.append(f"interface {external_interface}")
+    config.append(f"ip address {external_virtual_ip}")
+    config.append(f"standby version 2")
+    config.append(f"standby {external_hsrp_process} ip {external_virtual_ip}")
+    config.append(f"standby {external_hsrp_process} preempt")
+
+    config.append('exit')
+
+    return config

@@ -65,11 +65,12 @@ def vlan_dhcp() -> str:
         print('Too many wrong IP addresses. Skipping this part.')
 
 
+
 def saving() -> None:
     file_name = input("Enter the name of the file: ")
     script_path = os.path.abspath(__file__)
     directory_path = os.path.dirname(script_path)
-    file_path = os.path.join(directory_path, file_name)
+    file_path = os.path.join(directory_path, f'{file_name}.txt')
     with open(file_path, 'w') as file:
         for elem in all_cmd:
             file.write(f'{elem}\n')
@@ -163,28 +164,52 @@ def helper() -> None:
           '-dot: create a dotq on an interface\n'
           '-str: create static routes\n'
           '-ospf: create OSPF routes\n'
-          '-acl: activate ACL\n')
+          '-acl: activate ACL\n'
+          '-nato: activate NAT Overload\n')
 
 
 def ospf() -> str:
     p_id: str = input('Process ID: ')
     r_id: str = input('Router ID: ')
     area: str = input('Area: ')
-    wildcard_mask: str = input('Wildcard mask (leave empty for default): ')
-    wildcard_mask = wildcard_mask if wildcard_mask != '' else None
     final_road: bool = False
     total_road: list[str] = []
     while not final_road:
-        n_road = ensure_ip(input('Enter "end" when over.\nEnter the new road IP: '))[1]
-
-        if n_road and 'end' not in n_road:
-            total_road.extend(n_road)
-        elif n_road in n_road:
+        n_road = input('Enter "end" when over.\nEnter the new road IP and wildcard: ')
+        if 'end' not in n_road and ensure_ip(n_road)[0]:
+            if n_road:
+                total_road.extend(n_road)
+            else:
+                print('Not an IP. Continue.\n')
+        if 'end' in n_road:
             final_road = True
-        else:
-            print('Not an IP. Continue.\n')
-    return Router.set_ospf(p_id, r_id, total_road, area, wildcard_mask)
+            pass
+    return Router.set_ospf(p_id, r_id, total_road, area)
 
+
+def nat_overload() -> str or None:
+    inter = input('What is the internal interface: ')
+    network = ensure_ip(input('What is the IP and the subnet of inner network: '))
+    ex_inter = input('Whant is the external interface: ')
+    ex_network = ensure_ip(input('What is the public ip and subnet: '))
+    j = 0
+    acl_number = input('Enter ACL number')
+    valid_number = ensure_number(acl_number)
+    while not valid_number and j < __MAXIMUM_ATTEMPT:
+        temp_data = verify_its_number(acl_number)
+        if temp_data:
+            acl_number = temp_data
+            if acl_number < 1 or (99 < acl_number < 1000) or acl_number > 2699:
+                print('Invalid access list number. Please enter a number between 1 and 99 or between 1000 and 2699.')
+                pass
+            else:
+                valid_number = True
+                pass
+    if acl_number.isdigit():
+        return Router.generate_nat_overload_config(inter, network[1], ex_inter, ex_network[1], acl_number)
+    else:
+        print('bad configuration skiping')
+        return None
 
 def verify_its_number(user_input: str) -> int or None:
     while not user_input.isdigit() and j < __MAXIMUM_ATTEMPT:
@@ -193,11 +218,12 @@ def verify_its_number(user_input: str) -> int or None:
         j = j + 1
         if j >= __MAXIMUM_ATTEMPT:
             print('To many bad attempt skiping access list')
-    return user_input if user_input.isdigit() else None
+    return int(user_input) if user_input.isdigit() else None
 
 
 def access_list() -> str or None:
     ac_l_number = input('Enter the access list number')
+
     valid_number = False
     j = 0
 
@@ -220,7 +246,7 @@ def access_list() -> str or None:
             permit_or_deny = True
         else:
             permit_or_deny = False
-        source_ip = ensure_specific_ip(input('Enter the source IP'))
+        source_ip = ensure_ip(input('Enter the source IP for ACL (ip mask): '))
         if source_ip[0]:
             return Router.create_access_list(ac_l_number, permit_or_deny,source_ip[1])
         else:
@@ -302,5 +328,8 @@ if len(sys.argv) > 1:
 
         if'-acl' in sys.argv:
             all_cmd.extend(access_list())
+
+        if '-nato' in sys.argv:
+            all_cmd.extend(nat_overload())
             
         saving()

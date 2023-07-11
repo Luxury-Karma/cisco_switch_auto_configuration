@@ -22,16 +22,8 @@ def __is_it_an_ip(input_string):
         return False
 
 
-def __ip_in_network(input_string):
-    try:
-        ip, netmask = input_string.split()
-        ip = ipaddress.IPv4Address(ip)
-        netmask = ipaddress.IPv4Address(netmask)
-        # Create a network from the IP address and netmask
-        network = ipaddress.IPv4Network(f"{ip.network.network_address}/{netmask}", strict=False)
-        return ip in network
-    except ValueError:
-        return False
+
+
 
 
 def validate_ip(ip_data: str):
@@ -41,7 +33,6 @@ def validate_ip(ip_data: str):
     :return:
     """
     if __is_it_an_ip(ip_data):
-        if __ip_in_network(ip_data):
             return True
     return False
 

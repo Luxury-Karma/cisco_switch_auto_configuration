@@ -19,8 +19,8 @@ def set_VLAN_DHCP_IPv6( dhcp_pool_name: str, ipv6_address_and_prefix: str, inter
             'no shutdown', 'exit']
 
 
-def set_OSPF_on_router( process_id: str, router_id: str, all_route: list[str], area: str, wildcard_mask: str):
-    wildcard_mask = wildcard_mask if wildcard_mask else '0.0.0.0'
+def set_ospf(process_id: str, router_id: str, all_route: list[str], area: str, wildcard_mask: str):
+    wildcard_mask = wildcard_mask if wildcard_mask else '0.0.0.255'
     base_command = ['end', 'configure terminal', f'router ospf {process_id}', f'router-id {router_id}']
     for e in all_route:
         base_command.append(f'network {e} {wildcard_mask} area {area}')

@@ -30,7 +30,7 @@ def set_static_trunking( port_to_trunk: str, vlan_to_allow: list[str]):
     """
     vlan_to_allow = vlan_to_allow if vlan_to_allow else ['all']
     command = [f'interface {port_to_trunk}', f'switchport mode trunk']
-    for e in vlan_to_allow:
+    for e in vlan_to_allow and vlan_to_allow != 'all':
         command.extend(f'switchport trunk allowed vlan {e}')
     return command
 

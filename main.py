@@ -296,11 +296,11 @@ if len(sys.argv) > 1:
             all_cmd.extend(dotq())
 
         if '-str' in sys.argv:
-            static_route()
+            all_cmd.extend(static_route())
         if '-ospf' in sys.argv:
-            ospf()
+            all_cmd.extend(ospf())
 
         if'-acl' in sys.argv:
-            access_list()
+            all_cmd.extend(access_list())
             
         saving()

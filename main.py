@@ -1,9 +1,19 @@
+"""
+This script is used to automate the configuration of Cisco switches.
+It provides functionality such as setting up DHCP, creating VLANs, setting up static routes, and more.
+Usage: Run this script with the necessary flags to perform specific actions.
+       Use '-h' flag to get a list of all available flags and their descriptions.
+
+Author: Alexandre Gauvin
+Date: 2023
+Version: a0.0.1
+"""
+
 from Modules import Router
 from Modules import Switch
 from Modules import General_Machine
 import sys
 import os
-
 
 from Modules.ErrorHandling import set_error, gld_errorlist, ASErr
 import logging
@@ -19,101 +29,96 @@ g_log.info('\n')
 g_log.info('>>>>>>> Begin Process <<<<<<<')
 
 try:
-
-
-
     __MAXIMUM_ATTEMPT: int = 5
-    def cust_input(message, new_type):
-        res = input(message)
-        while not isinstance(res,new_type):
-            try:
-                res = new_type(message)
 
-            except:
+
+    def typed_input(message: str, new_type: type = str) -> any:
+        """
+                Prompts user for input and checks if it matches the expected data type.
+                If user enters 'end', the program ends.
+                :param message: prompt message for the user
+                :param new_type: expected data type of the input
+                :return: user's input converted to the expected data type or None if conversion fails
+                """
+        res = None
+        while not type(res) is new_type and not res == '':
+            try:
+                mes = input(message)
+                if mes.strip().lower() == 'end':
+                    set_error(n_code=1001,s_message='End was requested')
+                    sys.exit(0)
+                res = new_type(mes)
+            except ValueError:
                 print("wrong_data_type")
-                res = input(message)
+                res = None
         return res
 
 
+    def tst_ip(with_subnet=True) -> [bool, str|None] :
+        """
+                Verifies that a user input is a valid IP address and, optionally, subnet.
+                If the user fails to enter a valid IP/subnet after __MAXIMUM_ATTEMPT attempts, the function returns False.
+                :param with_subnet: if True, expects the user to input both IP and subnet; otherwise, only IP is expected
+                :return: [bool, str] if input is valid IP/subnet; [bool, None] if input is invalid after maximum attempts
+                """
+        message = '\tEnter a correct IP and subnet in this format 0.0.0.0 0.0.0.0: ' \
+            if with_subnet else '\tEnter a correct IP in this format 0.0.0.0: '
 
-    def ensure_number(input_value: str) -> int or bool:
-        try:
-            number = int(input_value)  # Convert the input to a float number
-            return number
-        except ValueError:
-            number = False
-            return number
+        for i in range(0,__MAXIMUM_ATTEMPT):
 
+            ip = typed_input(message)
 
-    def ensure_ip(ip_a: str) -> [bool, str] or [bool, None]:
-        j = 0
-        while not General_Machine.validate_ip(ip_a) and j < __MAXIMUM_ATTEMPT:
-            ip_a = input('Enter a correct IP and subnet in this format 0.0.0.0 0.0.0.0: ')
-            j = j + 1
-            if j >= 5:
-                print('Too many attempts. Skipping this part.')
-        if j < __MAXIMUM_ATTEMPT:
-            return True, ip_a
+            if ip.strip().lower() == 'quit':
+                return True, 'quit'
+            if General_Machine.validate_ip(ip, with_subnet=with_subnet):
+                return True, ip
+
+        print('Too many attempts.')
         return False, None
+    def request_ip(message, with_subnet=True):
+        print(message, '\n')
 
-
-    def ensure_specific_ip(ip: str) -> [bool, str] or [bool, None]:
-        j = 0
-        ip_a = ip
-        while not General_Machine.validate_pure_ip(ip) and j < __MAXIMUM_ATTEMPT:
-            ip_a = input('Enter a correct IP in this format 0.0.0.0: ')
-            j = j + 1
-            if j >= __MAXIMUM_ATTEMPT:
-                print('Too many attempts.')
-        if j < __MAXIMUM_ATTEMPT:
-            return True, ip_a
-        return False, None
+        #is_ip, ip = ensure_ip_subnet('') if with_sub_net else ensure_ip('')
+        is_ip, ip = tst_ip(with_subnet=with_subnet)
+        if is_ip:
+            return ip
+        else:
+            set_error(n_code=-500, s_message='Ip went wrong')
+            raise Exception
 
 
     def dhcp() -> str | None:
-        dhcp_pool_name = input('Enter the name of the pool: ')
-        ip_address = input('Enter the IP and network of the pool: ')
-
-        en = ensure_ip(ip_address)
-        if en[0]:
-            return Router.set_DHCP(dhcp_pool_name, en[1])
-        else:
-            print('Too many wrong IP addresses. Skipping this part.')
+        dhcp_pool_name = typed_input('Enter the name of the pool: ')
+        ip = request_ip('Enter the IP and network of the pool:')
+        return Router.set_DHCP(dhcp_pool_name, ip)
 
 
     def hsrp() -> str or None:
         print('Enter HSRP')
-        internal_interface = input('What is the internal interface: ')
-        internal_virtual_ip = ensure_specific_ip(input('What is the internal virtual IP: '))
-        if internal_virtual_ip[0]:
-            internal_virtual_ip = internal_virtual_ip[1]
-            internal_hsrp_process = input('What is the internal virtual hsrp: ')
-            external_interface = input('What is the external interface: ')
+        internal_interface = typed_input('What is the internal interface: ')
+        internal_virtual_ip = request_ip('What is the internal virtual IP: ', False)
 
-            external_virtual_ip = ensure_specific_ip(input('What is the virtual external IP: '))
-            if external_virtual_ip[0]:
-                external_virtual_ip = external_virtual_ip[1]
-                external_hsrp_process = input('What is the virtual external hsrp: ')
-                all_cmd.extend(Router.configure_hsrp(internal_interface, internal_virtual_ip, internal_hsrp_process,
-                                                     external_interface, external_virtual_ip, external_hsrp_process))
+        internal_hsrp_process = typed_input('What is the internal virtual hsrp: ')
+
+        external_interface = typed_input('What is the external interface: ')
+        external_virtual_ip = request_ip('What is the virtual external IP: ', False)
+
+        external_hsrp_process = typed_input('What is the virtual external hsrp: ')
+        all_cmd.extend(Router.configure_hsrp(internal_interface, internal_virtual_ip, internal_hsrp_process,
+                                             external_interface, external_virtual_ip, external_hsrp_process))
         return None
 
 
     def vlan_dhcp() -> str:
-        dhcp_pool_name = input('Name of the DHCP pool: ')
-        ip_address = input('What is the IP and subnet for the DHCP: ')
-        en = ensure_ip(ip_address)
-        if en[0]:
-            ip_address = en[1]
-            all_cmd.extend(Router.set_DHCP(dhcp_pool_name, ip_address))
-            interface_to_apply = input('Which interface is the VLAN linked to: ')
-            return Router.set_VLAN_DHCP_IPv4(dhcp_pool_name, ip_address, interface_to_apply)
-        else:
-            print('Too many wrong IP addresses. Skipping this part.')
+        dhcp_pool_name = typed_input('Name of the DHCP pool: ')
+        ip_address = request_ip('What is the IP and subnet for the DHCP: ')
+        all_cmd.extend(Router.set_DHCP(dhcp_pool_name, ip_address))
+        interface_to_apply = typed_input('Which interface is the VLAN linked to: ')
+        return Router.set_VLAN_DHCP_IPv4(dhcp_pool_name, ip_address, interface_to_apply)
 
 
     def saving() -> None:
-        file_name = input("Enter the name of the file: ")
+        file_name = typed_input("Enter the name of the file: ")
         script_path = os.path.abspath(__file__)
         directory_path = os.path.dirname(script_path)
         file_path = os.path.join(directory_path, f'{file_name}.txt')
@@ -124,8 +129,9 @@ try:
 
 
     def static_trunking() -> str or None:
-        port_to_trunk = input('Enter the port to trunk: ')
-        vlan_to_allow = input('Enter the VLAN number\n (leave empty if all) (split the VLANs numbers with space): ')
+        port_to_trunk = typed_input('Enter the port to trunk: ')
+        vlan_to_allow = typed_input(
+            'Enter the VLAN number\n (leave empty if all) (split the VLANs numbers with space): ')
         if vlan_to_allow and vlan_to_allow != '':
             vlan_to_allow = vlan_to_allow.split()
             return Switch.set_static_trunking(port_to_trunk, vlan_to_allow)
@@ -134,43 +140,31 @@ try:
 
 
     def dot_dhcp() -> str | None:
-        inter = input('Interface that has the multiple VLANs: ')
-        vlan_number = input('What is the VLAN that needs to be applied: ')
-        ip_address = input('What is the IP and subnet for the DHCP: ')
-        en = ensure_ip(ip_address)
-        if en[0]:
-            ip_address = en[1]
-            singular_ip = input('What is the IP of the gateway: ')
-            if ensure_specific_ip(singular_ip):
-                return Router.set_dot1q_ports_and_dhcp(inter, vlan_number, ip_address, singular_ip)
-            else:
-                print('Not an IP. Skipping this part.\n')
-        else:
-            print('Too many wrong IP addresses. Skipping this part.\n')
+        inter = typed_input('Interface that has the multiple VLANs: ')
+        vlan_number = typed_input('What is the VLAN that needs to be applied: ')
+        ip_address = request_ip('What is the IP and subnet for the DHCP: ')
+        singular_ip = request_ip('What is the IP of the gateway: ')
+        return Router.set_dot1q_ports_and_dhcp(inter, vlan_number, ip_address, singular_ip)
 
 
     def house_keeping() -> str | None:
-        machine_name = input('Enter the name of the machine: ')
-        banner_message = input('Enter the banner: ')
-        user = input('Enter the user: ')
-        password = input('Enter the password of the user: ')
-        secret = input('Enter the secret for the machine: ')
+        machine_name = typed_input('Enter the name of the machine: ')
+        banner_message = typed_input('Enter the banner: ')
+        user = typed_input('Enter the user: ')
+        password = typed_input('Enter the password of the user: ')
+        secret = typed_input('Enter the secret for the machine: ')
         return General_Machine.house_keeping(machine_name, banner_message, user, password, secret)
 
 
     def dotq() -> str | None:
-        inter = input('Enter the interface we are working with: ')
-        dot = input('Enter all of the dotq ports (put a space in between each port '
-                    '(port needs to have the same number as VLAN)): ')
+        inter = typed_input('Enter the interface we are working with: ')
+        dot = typed_input('Enter all of the dotq ports (put a space in between each port '
+                          '(port needs to have the same number as VLAN)): ')
         dot = dot.split()
         dotl = []
         for elem in dot:
-            singular_ip = input(f'What is the IP address for {elem}: ')
-            if ensure_specific_ip(singular_ip):
-                dotl.append([elem, singular_ip])
-            else:
-                print('Skipping this dot due to too many attempts.\n')
-                pass
+            singular_ip = request_ip(f'What is the IP address for {elem}: ', False)
+            dotl.append([elem, singular_ip])
         return Router.set_dot1q_ports(inter, dotl)
 
 
@@ -179,17 +173,11 @@ try:
         cont_route = True
         route = []
         while cont_route:
-            ip_address = input('Enter the IP and subnet (split with space): ')
-            if 'quit' in ip_address.lower().split():
+            ip_address = request_ip('Enter the IP and subnet (split with space): ')
+            if 'quit' in ip_address.lower():
                 cont_route = False
             else:
-                en = ensure_ip(ip_address)
-                if en[0]:
-                    ip_address = en[1]
-                    route.append(ip_address.split())
-                else:
-                    print('Wrong IP. Skipping this one.')
-                    pass
+                route.append(ip_address.split())
         return Router.static_routing(route)
 
 
@@ -215,54 +203,45 @@ try:
 
 
     def ospf() -> str:
-        p_id: str = input('Process ID: ')
-        r_id: str = input('Router ID: ')
-        area: str = input('Area: ')
+        p_id: str = typed_input('Process ID: ', int)
+        r_id: str = request_ip('Router ID: ', False)
+        area: str = typed_input('Area: ', int)
         final_road: bool = False
         total_road: list[str] = []
         while not final_road:
-            n_road = input('Enter "end" when over.\nEnter the new road IP and wildcard: ')
-            if 'end' not in n_road and ensure_ip(n_road)[0]:
+            n_road = request_ip('Enter "quit" when over.\n\tEnter the new road IP and wildcard: ')
+            if 'quit' != n_road:
                 if n_road:
-                    total_road.extend(n_road)
+                    total_road.append(n_road)
                 else:
                     print('Not an IP. Continue.\n')
-            if 'end' in n_road:
+            if 'quit' == n_road:
                 final_road = True
                 pass
         return Router.set_ospf(p_id, r_id, total_road, area)
 
 
     def nat_overload() -> str or None:
-        inter = input('What is the internal interface: ')
-        network = ensure_ip(input('What is the IP and the subnet of inner network: '))
-        ex_inter = input('Whant is the external interface: ')
-        ex_network = ensure_ip(input('What is the public ip and subnet: '))
-        j = 0
-        acl_number = input('Enter ACL number')
-        valid_number = ensure_number(acl_number)
-        while not valid_number and j < __MAXIMUM_ATTEMPT:
-            temp_data = verify_its_number(acl_number)
-            if temp_data:
-                acl_number = temp_data
-                if acl_number < 1 or (99 < acl_number < 1000) or acl_number > 2699:
-                    print('Invalid access list number. Please enter a number between 1 and 99 or between 1000 and 2699.')
-                    pass
-                else:
-                    valid_number = True
-                    pass
-        if acl_number.isdigit():
+        inter = typed_input('What is the internal interface: ')
+        network = request_ip('What is the IP and the subnet of inner network: ')
+        ex_inter = typed_input('Whant is the external interface: ')
+        ex_network = request_ip('What is the public ip and subnet: ')
+
+        for i in range(0, __MAXIMUM_ATTEMPT):
+            acl_number = typed_input('Enter ACL number', int)
+
+            if acl_number < 1 or (99 < acl_number < 1000) or acl_number > 2699:
+                set_error(n_code=-501, s_description='Invalid access list number. Please enter a number between 1 and'
+                                                     ' 99 or between 1000 and 2699.')
+                continue
             return Router.generate_nat_overload_config(inter, network[1], ex_inter, ex_network[1], acl_number)
-        else:
-            print('bad configuration skiping')
-            return None
 
 
     def verify_its_number(user_input: str) -> int or None:
         j = 0
         while not user_input.isdigit() and j < __MAXIMUM_ATTEMPT:
             print('Invalid access list number. Please enter a numeric value.')
-            user_input = input('Enter the access list number')
+            user_input = typed_input('Enter the access list number')
             j = j + 1
             if j >= __MAXIMUM_ATTEMPT:
                 print('To many bad attempt skiping access list')
@@ -270,119 +249,110 @@ try:
 
 
     def access_list() -> str or None:
-        ac_l_number = input('Enter the access list number')
+        ac_l_number = typed_input('Enter the access list number', int)
 
-        valid_number = False
-        j = 0
+        for i in range(0, __MAXIMUM_ATTEMPT):
+            acl_number = typed_input('Enter ACL number', int)
 
-        while not valid_number and j < __MAXIMUM_ATTEMPT:
-            temp_data = verify_its_number(ac_l_number)
-            if temp_data:
-                ac_l_number = temp_data
-                if ac_l_number < 1 or (99 < ac_l_number < 1000) or ac_l_number > 2699:
-                    print('Invalid access list number. Please enter a number between 1 and 99 or between 1000 and 2699.')
-                    pass
-                else:
-                    valid_number = True
-                    pass
+            if acl_number < 1 or (99 < acl_number < 1000) or acl_number > 2699:
+                set_error(n_code=-501, s_description='Invalid access list number. Please enter a number between 1 and'
+                                                     ' 99 or between 1000 and 2699.')
+                continue
 
-        if valid_number:
-            ac_l_number = int(ac_l_number)
-
-            permit_or_deny = input('Let empty if the permit is true else enter anything')
-            if permit_or_deny == '':
+            permit_or_deny = typed_input('If the permit is true please enter "TRUE" else enter anything (AKA. FALSE)')
+            if permit_or_deny.strip().lower() == 'true':
                 permit_or_deny = True
             else:
                 permit_or_deny = False
-            source_ip = ensure_ip(input('Enter the source IP for ACL (ip mask): '))
-            if source_ip[0]:
-                return Router.create_access_list(ac_l_number, permit_or_deny, source_ip[1])
-            else:
-                print('Not a valid IP skipping')
+            source_ip = request_ip('Enter the source IP for ACL (ip mask): ')
+            return Router.create_access_list(ac_l_number, permit_or_deny, source_ip[1])
+
         return None
 
 
-    if len(sys.argv) > 1:
-        all_cmd = []
-        if '-h' in sys.argv:
-            helper()
-        else:
-            if '-k' in sys.argv:
-                all_cmd.extend(house_keeping())
+    if __name__ == '__main__':
+        if len(sys.argv) > 1:
+            all_cmd = []
+            if '-h' in sys.argv:
+                helper()
+            else:
+                if '-k' in sys.argv:
+                    all_cmd.extend(house_keeping())
 
-            if '-st' in sys.argv:
-                all_cmd.extend(static_trunking())
+                if '-st' in sys.argv:
+                    all_cmd.extend(static_trunking())
 
-            if '-dtd' in sys.argv:
-                all_cmd.extend(Switch.set_dynamic_trunking_desirable(
-                    input('Enter the port to dynamically desirable trunk: ')))
+                if '-dtd' in sys.argv:
+                    all_cmd.extend(Switch.set_dynamic_trunking_desirable(
+                        typed_input('Enter the port to dynamically desirable trunk: ')))
 
-            if '-dta' in sys.argv:
-                all_cmd.extend(Switch.set_dynamic_trunking_auto(input('Enter the port to dynamically auto trunk: ')))
+                if '-dta' in sys.argv:
+                    all_cmd.extend(
+                        Switch.set_dynamic_trunking_auto(typed_input('Enter the port to dynamically auto trunk: ')))
 
-            if '-dhcp' in sys.argv:
-                all_cmd.extend(dhcp())
-
-            if '-mdhcp' in sys.argv:
-                number_of_pool = ensure_number(input('Number of pools: '))
-                i = 0
-                while not number_of_pool:
-                    number_of_pool = ensure_number(input('Enter a number of pools: '))
-                    i = i + 1
-                    if i >= 5:
-                        print('ERROR WITH NUMBER, TOO MANY BAD ATTEMPTS\n')
-                        number_of_pool = 0
-                        break
-
-                for e in range(number_of_pool):
+                if '-dhcp' in sys.argv:
                     all_cmd.extend(dhcp())
 
-            if '-vdhcp' in sys.argv:
-                vlan_dhcp()
+                if '-mdhcp' in sys.argv:
+                    number_of_pool = typed_input('Number of pools: ', int)
+                    i = 0
+                    while not number_of_pool:
+                        number_of_pool = typed_input('Enter a number of pools: ', int)
+                        i = i + 1
+                        if i >= 5:
+                            print('ERROR WITH NUMBER, TOO MANY BAD ATTEMPTS\n')
+                            number_of_pool = 0
+                            break
 
-            if '-mvdhcp' in sys.argv:
-                amount_of_DHCP = ensure_number(input('How many VLAN DHCP need to be created: '))
-                i = 0
-                while not amount_of_DHCP:
-                    amount_of_DHCP = ensure_number(
-                        input('How many VLAN DHCP need to be created. IT NEEDS TO BE A NUMBER: '))
-                    i = i + 1
-                    if i >= 5:
-                        print('Program quit, too many bad attempts: ')
-                for e in range(amount_of_DHCP):
+                    for e in range(number_of_pool):
+                        all_cmd.extend(dhcp())
+
+                if '-vdhcp' in sys.argv:
                     vlan_dhcp()
 
-            if '-dpdhcp' in sys.argv:
-                all_cmd.extend(dot_dhcp())
+                if '-mvdhcp' in sys.argv:
+                    amount_of_DHCP = typed_input('How many VLAN DHCP need to be created: ', int)
+                    i = 0
+                    while not amount_of_DHCP:
+                        amount_of_DHCP = typed_input('How many VLAN DHCP need to be created. IT NEEDS TO BE A NUMBER: ',
+                                                     int)
+                        i = i + 1
+                        if i >= 5:
+                            print('Program quit, too many bad attempts: ')
+                    for e in range(amount_of_DHCP):
+                        vlan_dhcp()
 
-            if '-mdphcp' in sys.argv:
-                pools_amount = ensure_number(input('How many VLAN dotq ports need to be created: '))
-                i = 0
-                while not pools_amount:
-                    pools_amount = ensure_number(input('How many VLAN dotq need to be created. IT NEEDS TO BE A NUMBER: '))
-                    i = i + 1
-                    if i >= 5:
-                        print("Program quit, too many bad attempts")
-                interface = input('Which interface will receive the dotq ports: ')
-                for e in range(pools_amount):
+                if '-dpdhcp' in sys.argv:
                     all_cmd.extend(dot_dhcp())
 
-            if '-dot' in sys.argv:
-                all_cmd.extend(dotq())
+                if '-mdphcp' in sys.argv:
+                    pools_amount = typed_input('How many VLAN dotq ports need to be created: ', int)
+                    i = 0
+                    while not pools_amount:
+                        pools_amount = typed_input('How many VLAN dotq need to be created. IT NEEDS TO BE A NUMBER: ', int)
+                        i = i + 1
+                        if i >= 5:
+                            print("Program quit, too many bad attempts")
+                    interface = typed_input('Which interface will receive the dotq ports: ')
+                    for e in range(pools_amount):
+                        all_cmd.extend(dot_dhcp())
 
-            if '-str' in sys.argv:
-                all_cmd.extend(static_route())
-            if '-ospf' in sys.argv:
-                all_cmd.extend(ospf())
+                if '-dot' in sys.argv:
+                    all_cmd.extend(dotq())
 
-            if '-acl' in sys.argv:
-                all_cmd.extend(access_list())
+                if '-str' in sys.argv:
+                    all_cmd.extend(static_route())
+                if '-ospf' in sys.argv:
+                    all_cmd.extend(ospf())
 
-            if '-nato' in sys.argv:
-                all_cmd.extend(nat_overload())
+                if '-acl' in sys.argv:
+                    all_cmd.extend(access_list())
 
-            saving()
-            
+                if '-nato' in sys.argv:
+                    all_cmd.extend(nat_overload())
+
+                saving()
+
 except ASErr:
     print(gld_errorlist)
 except:
@@ -392,4 +362,3 @@ finally:
     g_log.info('\n')
     g_log.info(str(gld_errorlist))
     g_log.info('>>>>>>> Process End <<<<<<<')
-

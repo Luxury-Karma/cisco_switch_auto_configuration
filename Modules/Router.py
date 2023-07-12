@@ -49,7 +49,7 @@ def set_dot1q_ports( interface: str, interface_dot: list[list[str]]):
         commands.extend(
             [f'interface {interface}.{el[0]}', f'encapsulation dot1Q {el[0]}', f'ip address {el[1].split()[0]}',
              'no shutdown'])
-    commands.extend('exit')
+    commands.append('exit')
     return commands
 
 

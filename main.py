@@ -34,18 +34,18 @@ try:
 
     def typed_input(message: str, new_type: type = str) -> any:
         """
-                Prompts user for input and checks if it matches the expected data type.
-                If user enters 'end', the program ends.
-                :param message: prompt message for the user
-                :param new_type: expected data type of the input
-                :return: user's input converted to the expected data type or None if conversion fails
-                """
+        Prompts user for input and checks if it matches the expected data type.
+        If user enters 'end', the program ends.
+        :param message: prompt message for the user
+        :param new_type: expected data type of the input
+        :return: user's input converted to the expected data type or None if conversion fails
+        """
         res = None
         while not type(res) is new_type and not res == '':
             try:
                 mes = input(message)
                 if mes.strip().lower() == 'end':
-                    set_error(n_code=1001,s_message='End was requested')
+                    set_error(n_code=1001, s_message='End was requested')
                     sys.exit(0)
                 res = new_type(mes)
             except ValueError:
@@ -54,17 +54,17 @@ try:
         return res
 
 
-    def tst_ip(with_subnet=True) -> [bool, str|None] :
+    def tst_ip(with_subnet=True) -> [bool, str | None]:
         """
-                Verifies that a user input is a valid IP address and, optionally, subnet.
-                If the user fails to enter a valid IP/subnet after __MAXIMUM_ATTEMPT attempts, the function returns False.
-                :param with_subnet: if True, expects the user to input both IP and subnet; otherwise, only IP is expected
-                :return: [bool, str] if input is valid IP/subnet; [bool, None] if input is invalid after maximum attempts
-                """
+        Verifies that a user input is a valid IP address and, optionally, subnet.
+        If the user fails to enter a valid IP/subnet after __MAXIMUM_ATTEMPT attempts, the function returns False.
+        :param with_subnet: if True, expects the user to input both IP and subnet; otherwise, only IP is expected
+        :return: [bool, str] if input is valid IP/subnet; [bool, None] if input is invalid after maximum attempts
+        """
         message = '\tEnter a correct IP and subnet in this format 0.0.0.0 0.0.0.0: ' \
             if with_subnet else '\tEnter a correct IP in this format 0.0.0.0: '
 
-        for i in range(0,__MAXIMUM_ATTEMPT):
+        for i in range(0, __MAXIMUM_ATTEMPT):
 
             ip = typed_input(message)
 
@@ -75,10 +75,16 @@ try:
 
         print('Too many attempts.')
         return False, None
-    def request_ip(message, with_subnet=True):
-        print(message, '\n')
 
-        #is_ip, ip = ensure_ip_subnet('') if with_sub_net else ensure_ip('')
+
+    def request_ip(message, with_subnet=True):
+        """
+        Prompts the user to enter an IP address (and subnet if specified) and validates the input.
+        :param message: the prompt message for the user
+        :param with_subnet: if True, expects the user to input both IP and subnet; otherwise, only IP is expected
+        :return: the valid IP address (and subnet if provided) as a string
+        """
+        print(message, '\n')
         is_ip, ip = tst_ip(with_subnet=with_subnet)
         if is_ip:
             return ip
@@ -88,12 +94,20 @@ try:
 
 
     def dhcp() -> str | None:
+        """
+        Configures DHCP on the router.
+        :return: the DHCP configuration command as a string
+        """
         dhcp_pool_name = typed_input('Enter the name of the pool: ')
         ip = request_ip('Enter the IP and network of the pool:')
         return Router.set_DHCP(dhcp_pool_name, ip)
 
 
     def hsrp() -> str or None:
+        """
+        Configures HSRP on the router.
+        :return: None
+        """
         print('Enter HSRP')
         internal_interface = typed_input('What is the internal interface: ')
         internal_virtual_ip = request_ip('What is the internal virtual IP: ', False)
@@ -110,14 +124,21 @@ try:
 
 
     def vlan_dhcp() -> str:
+        """
+        Configures DHCP for a VLAN.
+        :return: the DHCP configuration command for the VLAN as a string
+        """
         dhcp_pool_name = typed_input('Name of the DHCP pool: ')
         ip_address = request_ip('What is the IP and subnet for the DHCP: ')
-        all_cmd.extend(Router.set_DHCP(dhcp_pool_name, ip_address))
         interface_to_apply = typed_input('Which interface is the VLAN linked to: ')
         return Router.set_VLAN_DHCP_IPv4(dhcp_pool_name, ip_address, interface_to_apply)
 
 
     def saving() -> None:
+        """
+        Saves the configuration commands to a file.
+        :return: None
+        """
         file_name = typed_input("Enter the name of the file: ")
         script_path = os.path.abspath(__file__)
         directory_path = os.path.dirname(script_path)
@@ -129,6 +150,10 @@ try:
 
 
     def static_trunking() -> str or None:
+        """
+        Configures static trunking on a port.
+        :return: the configuration command for static trunking as a string
+        """
         port_to_trunk = typed_input('Enter the port to trunk: ')
         vlan_to_allow = typed_input(
             'Enter the VLAN number\n (leave empty if all) (split the VLANs numbers with space): ')
@@ -140,6 +165,10 @@ try:
 
 
     def dot_dhcp() -> str | None:
+        """
+        Configures dot1q ports and DHCP on the router.
+        :return: the configuration command for dot1q ports and DHCP as a string
+        """
         inter = typed_input('Interface that has the multiple VLANs: ')
         vlan_number = typed_input('What is the VLAN that needs to be applied: ')
         ip_address = request_ip('What is the IP and subnet for the DHCP: ')
@@ -148,6 +177,10 @@ try:
 
 
     def house_keeping() -> str | None:
+        """
+        Performs housekeeping tasks on the machine.
+        :return: the configuration commands for housekeeping as a string
+        """
         machine_name = typed_input('Enter the name of the machine: ')
         banner_message = typed_input('Enter the banner: ')
         user = typed_input('Enter the user: ')
@@ -157,6 +190,10 @@ try:
 
 
     def dotq() -> str | None:
+        """
+        Configures dot1q on an interface.
+        :return: the configuration command for dot1q as a string
+        """
         inter = typed_input('Enter the interface we are working with: ')
         dot = typed_input('Enter all of the dotq ports (put a space in between each port '
                           '(port needs to have the same number as VLAN)): ')
@@ -169,6 +206,10 @@ try:
 
 
     def static_route() -> str | None:
+        """
+        Configures static routes on the router.
+        :return: the configuration commands for static routes as a string
+        """
         print('Input "quit" when you are done entering routes.')
         cont_route = True
         route = []
@@ -183,8 +224,8 @@ try:
 
     def helper() -> None:
         """
-        Give all the functions command
-        :return: Nothing
+        Prints a list of available flags and their descriptions.
+        :return: None
         """
         print('-k: housekeeping\n'
               '-st: create a static trunk port\n'
@@ -203,6 +244,10 @@ try:
 
 
     def ospf() -> str:
+        """
+        Configures OSPF routes on the router.
+        :return: the configuration commands for OSPF routes as a string
+        """
         p_id: str = typed_input('Process ID: ', int)
         r_id: str = request_ip('Router ID: ', False)
         area: str = typed_input('Area: ', int)
@@ -222,6 +267,10 @@ try:
 
 
     def nat_overload() -> str or None:
+        """
+        Configures NAT overload on the router.
+        :return: the configuration commands for NAT overload as a string
+        """
         inter = typed_input('What is the internal interface: ')
         network = request_ip('What is the IP and the subnet of inner network: ')
         ex_inter = typed_input('Whant is the external interface: ')
@@ -238,17 +287,26 @@ try:
 
 
     def verify_its_number(user_input: str) -> int or None:
+        """
+        Verifies if a given input is a valid access list number.
+        :param user_input: the input to verify
+        :return: the access list number as an integer if valid, None otherwise
+        """
         j = 0
         while not user_input.isdigit() and j < __MAXIMUM_ATTEMPT:
             print('Invalid access list number. Please enter a numeric value.')
             user_input = typed_input('Enter the access list number')
             j = j + 1
             if j >= __MAXIMUM_ATTEMPT:
-                print('To many bad attempt skiping access list')
+                print('Too many bad attempts. Skipping access list.')
         return int(user_input) if user_input.isdigit() else None
 
 
     def access_list() -> str or None:
+        """
+        Creates an access list on the router.
+        :return: the configuration command for the access list as a string
+        """
         ac_l_number = typed_input('Enter the access list number', int)
 
         for i in range(0, __MAXIMUM_ATTEMPT):

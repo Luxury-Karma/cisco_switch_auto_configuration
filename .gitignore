@@ -109,7 +109,7 @@ fabric.properties
 __pycache__/
 *.py[cod]
 *$py.class
-
+Modules/__pycache__/
 # C extensions
 *.so
 

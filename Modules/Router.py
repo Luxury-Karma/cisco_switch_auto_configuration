@@ -36,7 +36,7 @@ def set_OSPF_on_router_IPV6( process_id: str, router_id: str, all_route: list[st
 
 
 def static_routing( ip_route: list[list[str]]):
-    base_command = ['end', 'configure terminal']
+    base_command = ['configure terminal']
     for e in ip_route:
         base_command.append(f'ip route {e[0]} {e[1]}')
     base_command.append('exit')

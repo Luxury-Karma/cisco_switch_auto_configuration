@@ -1,4 +1,4 @@
-def set_vlan( vlan_name: str, vlan_number: str, vlan_ip: str):
+def set_vlan(vlan_name: str, vlan_number: str, vlan_ip: str):
     """
     Set up a vlan
     :param vlan_name: The name of the vlan if empty one is generated

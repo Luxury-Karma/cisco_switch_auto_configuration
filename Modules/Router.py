@@ -11,6 +11,9 @@ def set_VLAN_DHCP_IPv4( dhcp_pool_name: str, ip_address_and_subnet: str, interfa
     return commands
 
 
+
+    return commands
+
 def set_VLAN_DHCP_IPv6( dhcp_pool_name: str, ipv6_address_and_prefix: str, interface_to_apply: str):
     return [f'end', f'configure terminal', f'ipv6 dhcp pool {dhcp_pool_name}',
             f'address prefix {ipv6_address_and_prefix}', f'interface {interface_to_apply}',

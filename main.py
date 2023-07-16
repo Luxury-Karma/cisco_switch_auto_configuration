@@ -240,7 +240,8 @@ try:
               '-str: create static routes\n'
               '-ospf: create OSPF routes\n'
               '-acl: activate ACL\n'
-              '-nato: activate NAT Overload\n')
+              '-nato: activate NAT Overload\n'
+              '-v : set vlan')
 
 
     def ospf() -> str:
@@ -265,6 +266,19 @@ try:
                 pass
         return Router.set_ospf(p_id, r_id, total_road, area)
 
+    def set_vlan():
+        print('Enter quit to be over in the name section')
+        vlan_name = ''
+        list_of_command = []
+        while vlan_name.lower() != 'quit':
+            vlan_name = typed_input('Enter the name of the vlan: ')
+            if vlan_name.lower == 'quit':
+                break
+            vlan_number = typed_input('Enter the vlan number: ', int)
+            vlan_ip = request_ip('Enter the vlan ip: ')
+            list_of_command.extend(Switch.set_vlan(vlan_name,vlan_number,vlan_ip))
+
+        return list_of_command
 
     def nat_overload() -> str or None:
         """
@@ -408,6 +422,10 @@ try:
 
                 if '-nato' in sys.argv:
                     all_cmd.extend(nat_overload())
+                if '-v' in sys.argv:
+                    set_vlan()
+
+
 
                 saving()
 

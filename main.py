@@ -37,7 +37,7 @@ def typed_input(message: str, new_type: type = str) -> any:
                 sys.exit(0)
             res = new_type(mes)
         except ValueError:
-            print("wrong_data_type")
+            print(f"ValueError, was expecting {new_type}, received {res}")
             res = None
     return res
 
@@ -237,9 +237,9 @@ def ospf() -> str:
     Configures OSPF routes on the router.
     :return: the configuration commands for OSPF routes as a string
     """
-    p_id: str = typed_input('Process ID: ', int)
-    r_id: str = request_ip('Router ID: ', False)
-    area: str = typed_input('Area: ', int)
+    p_id: str = typed_input('Process ID (int): ', int)
+    r_id: str = request_ip('Router ID (IP format): ', False)
+    area: str = typed_input('Area (int): ', int)
     final_road: bool = False
     total_road: list[str] = []
     while not final_road:

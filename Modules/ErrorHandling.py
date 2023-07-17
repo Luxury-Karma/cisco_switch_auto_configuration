@@ -1,68 +1,113 @@
 import sys
 import re
-gd_error = {"code": 0, "message": "", "description": "", "line": "", "File": ""}
-gld_errorlist = []
+
+# Global error dictionary
+ERROR_STR = {"code": 0, "message": "", "description": "", "line": "", "file": ""}
+
+# Global list to store error dictionaries
+ERROR_LIST = []
 
 
 class ASErr(Exception):
+    """Custom exception class."""
     pass
 
 
-def set_error(n_code=-1000, s_message="Unexpected error", s_description="",
-              s_line=None, s_filename=None):
-    __err_type, __err_message, __tb = sys.exc_info()
+def set_error(code=-1000, message="Unexpected error", description="", line=None, filename=None):
+    """
+    Set the error information.
 
-    if __tb:
-        __f = __tb.tb_frame
-        __s_filename = s_filename if s_filename else __f.f_code.co_filename
-        __s_line = s_line if s_line else __tb.tb_lineno
+    Args:
+        code (int): Error code (default: -1000).
+        message (str): Error message (default: "Unexpected error").
+        description (str): Error description.
+        line (int): Line number where the error occurred.
+        filename (str): Name of the file where the error occurred.
+
+    Returns:
+        dict: Error dictionary containing code, message, description, line, and file.
+
+    """
+    exc_type, exc_message, tb = sys.exc_info()
+
+    if tb:
+        frame = tb.tb_frame
+        s_filename = filename if filename else frame.f_code.co_filename
+        s_line = line if line else tb.tb_lineno
     else:
-        __s_filename = s_filename if s_filename else "Not defined"
-        __s_line = s_line if s_line else "Not defined"
+        s_filename = filename if filename else "Not defined"
+        s_line = line if line else "Not defined"
 
-    # Set description with the s_description + message of the raised error + set a default if none passed
-    __s_description = s_description + str(__err_message) if __err_message else ""
-    if not __s_description:
-        __s_description = "Error set or raise without description"
+    # Set description by combining s_description, raised error message, or a default if none is passed
+    s_description = description + str(exc_message) if exc_message else ""
+    if not s_description:
+        s_description = "Error set or raised without description"
 
-    gd_error["code"] = n_code
-    gd_error["message"] = s_message
-    gd_error["description"] = __s_description
-    gd_error["line"] = __s_line
-    gd_error["File"] = __s_filename
+    ERROR_STR["code"] = code
+    ERROR_STR["message"] = message
+    ERROR_STR["description"] = s_description
+    ERROR_STR["line"] = s_line
+    ERROR_STR["file"] = s_filename
 
-    gld_errorlist.append(gd_error)
-    return gd_error
+    ERROR_LIST.append(ERROR_STR)
+    return ERROR_STR
 
 
-def set_error_list(ld_errlist):
-    global gld_errorlist
-    gld_errorlist = ld_errlist
+def set_error_list(error_list_data):
+    """
+    Set the error list.
+
+    Args:
+        error_list_data (list): List of error dictionaries.
+
+    """
+    global ERROR_LIST
+    ERROR_LIST = error_list_data
 
 
 def clear_error():
-    global gd_error, gld_errorlist
-    gd_error = {"code": 0, "message": "", "description": "", "line": "", "File": ""}
-    gld_errorlist = []
+    """Clear the error information."""
+    global ERROR_STR, ERROR_LIST
+    ERROR_STR = {"code": 0, "message": "", "description": "", "line": "", "file": ""}
+    ERROR_LIST = []
 
 
-def remove_error(d_err: dict):
-    global gld_errorlist
-    __ld_errlist = []
+def remove_error(error_dict):
+    """
+    Remove the specified error dictionary from the error list.
 
-    for x in gld_errorlist:
-        if not x == d_err:
-            __ld_errlist.append(x)
-    gld_errorlist = __ld_errlist
+    Args:
+        error_dict (dict): Error dictionary to be removed.
+
+    """
+    global ERROR_LIST
+    updated_error_list = []
+
+    for error in ERROR_LIST:
+        if not error == error_dict:
+            updated_error_list.append(error)
+
+    ERROR_LIST = updated_error_list
 
 
-def get_error(s_field_name: str, s_regex: str):
-    global gld_errorlist
-    __ld_errlist = []
+def get_error(field_name: str, regex: str):
+    """
+    Retrieve a list of error dictionaries based on the specified field name and regular expression.
 
-    for x in gld_errorlist:
-        __temp = re.findall(s_regex, x[s_field_name])
-        if __temp:
-            __ld_errlist.append(x)
+    Args:
+        field_name (str): Field name in the error dictionaries.
+        regex (str): Regular expression to match against the field value.
 
-    return __ld_errlist
+    Returns:
+        list: List of error dictionaries matching the specified criteria.
+
+    """
+    global ERROR_LIST
+    filtered_error_list = []
+
+    for error in ERROR_LIST:
+        temp = re.findall(regex, error[field_name])
+        if temp:
+            filtered_error_list.append(error)
+
+    return filtered_error_list

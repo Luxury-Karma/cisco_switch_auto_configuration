@@ -6,7 +6,7 @@ def house_keeping(machine_name: str, banner_message: str, username: str, passwor
             f'username {username} password {password}', ]
 
 
-def validate_ip(input_string,with_sub_net = True):
+def validate_ip(input_string,with_subnet = True):
     """
     Ensure that the IP and subnet are valid
     :param input_string:
@@ -14,14 +14,14 @@ def validate_ip(input_string,with_sub_net = True):
     """
     try:
         ip, subnet = None,None
-        if with_sub_net:
+        if with_subnet:
             ip, subnet = input_string.split()
             ipaddress.IPv4Address(subnet)  # validate subnet
 
         ipaddress.IPv4Address(ip if ip else input_string)  # validate ip
         return True
     except ValueError:
-        print('This is not and ip format x.x.x.x', ' x.x.x.x' if with_sub_net else '')
+        print('This is not and ip format x.x.x.x', ' x.x.x.x' if with_subsnet else '')
         return False
 
 
